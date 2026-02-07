@@ -1,0 +1,40 @@
+TebLocalPlannerROS:
+  odom_topic: odom
+  map_frame: map
+
+  # 机器人运动学参数
+  max_vel_x: 0.3          # 窄环境建议限速，增加计算冗余
+  max_vel_x_backwards: 0.1
+  max_vel_theta: 0.5      # 限制转速，防止在门口摆动过大导致碰撞
+  acc_lim_x: 0.2
+  acc_lim_theta: 0.3
+
+  # 机器人模型 (必须设置，确保不剐蹭门框)
+  # 假设机器人是 44cm x 44cm 的正方形
+  footprint_model:
+    type: "polygon"
+    vertices: [[0.22, 0.22], [0.22, -0.22], [-0.22, -0.22], [-0.22, 0.22]]
+
+  # 路径规划参数
+  min_obstacle_dist: 0.08      # 关键：由于余量仅10cm，此值必须小于0.1，否则TEB认为过不去
+  inflation_dist: 0.15         # 膨胀曲线，引导机器人从门中心穿过
+  include_dynamic_obstacles: true
+  costmap_obstacles_behind_robot_dist: 1.0
+  obstacle_poses_affected: 30
+
+  # 轨迹优化参数
+  no_inner_iterations: 5
+  no_outer_iterations: 4
+  penalty_epsilon: 0.1
+  weight_max_vel_x: 2
+  weight_max_vel_theta: 1
+  weight_acc_lim_x: 1
+  weight_acc_lim_theta: 1
+  weight_kinematics_nh: 1000   # 强制满足非圆柱形机器人的运动约束
+  weight_obstacle: 50          # 提高避障权重，防止剐蹭
+  weight_dynamic_obstacle: 10
+  
+  # 容差设置
+  xy_goal_tolerance: 0.05      # 5cm容差，确保精确停在答题区中心
+  yaw_goal_tolerance: 0.1
+  free_goal_vel: False
