@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from model import test_loader
+
 
 # ================= 数据预处理 =================
 transform = transforms.Compose([
@@ -84,7 +84,7 @@ for epoch in range(5):
 torch.save(model.state_dict(), "digit_model_cpu.pth")
 print("模型已保存")
 with torch.no_grad():  # 测试不需要梯度
-    for imgs, targets in test_loader:
+    for imgs, targets in val_loader:
         imgs, targets = imgs.to(device), targets.to(device)
         outputs = model(imgs)
         _, predicted = outputs.max(1)
