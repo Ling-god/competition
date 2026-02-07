@@ -1,0 +1,94 @@
+import os
+import torch
+import torchvision
+import torch.nn as nn
+from torch.utils.data import DataLoader
+from torchvision import transforms
+
+from model import test_loader
+
+# ================= 数据预处理 =================
+transform = transforms.Compose([
+    transforms.Resize((64, 64)),
+    transforms.ToTensor(),
+    transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5))
+])
+
+train_data = torchvision.datasets.ImageFolder(os.path.join("dataset", "train"), transform=transform)
+val_data = torchvision.datasets.ImageFolder(os.path.join("dataset", "val"), transform=transform)
+
+train_loader = DataLoader(train_data, batch_size=32, shuffle=True)
+val_loader = DataLoader(val_data, batch_size=32)
+
+# ================= 网络 =================
+class NumDetection(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.model = nn.Sequential(
+            nn.Conv2d(3, 32, 5, padding=2),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+
+            nn.Conv2d(32, 32, 5, padding=2),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+
+            nn.Conv2d(32, 64, 5, padding=2),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+
+            nn.Flatten(),
+            nn.Linear(64 * 8 * 8, 64),
+            nn.ReLU(),
+            nn.Linear(64, 10)
+        )
+
+    def forward(self, x):
+        return self.model(x)
+
+# ================= 强制使用 CPU =================
+device = torch.device("cpu")
+print("当前设备:", device)
+
+model = NumDetection().to(device)
+loss_function = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+# ================= 训练 =================
+for epoch in range(5):
+    print(f"\n===== 第 {epoch+1} 轮训练 =====")
+    model.train()
+    train_loss = 0
+    correct = 0
+    total = 0
+
+    for imgs, targets in train_loader:
+        imgs, targets = imgs.to(device), targets.to(device)
+
+        outputs = model(imgs)
+        loss = loss_function(outputs, targets)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        train_loss += loss.item()
+        _, predicted = outputs.max(1)
+        total += targets.size(0)
+        correct += predicted.eq(targets).sum().item()
+
+    print(f"训练损失: {train_loss/len(train_loader):.4f}")
+    print(f"训练准确率: {100*correct/total:.2f}%")
+
+# ================= 保存模型 =================
+torch.save(model.state_dict(), "digit_model_cpu.pth")
+print("模型已保存")
+with torch.no_grad():  # 测试不需要梯度
+    for imgs, targets in test_loader:
+        imgs, targets = imgs.to(device), targets.to(device)
+        outputs = model(imgs)
+        _, predicted = outputs.max(1)
+        total += targets.size(0)
+        correct += (predicted == targets).sum().item()
+
+print(f"测试集准确率: {100*correct/total:.2f}%")
