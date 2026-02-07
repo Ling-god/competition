@@ -1,0 +1,37 @@
+<launch>
+  <!-- 启动参数：是否使用Gazebo GUI 和 RViz -->
+  <arg name="gui" default="true"/>
+  <arg name="rviz" default="true"/> 
+
+  <!-- 设置仿真时间 (Cartographer 建图依赖仿真时间同步) -->
+  <param name="/use_sim_time" value="true" />
+
+  <!-- 使用 Xacro 命令解析 .xacro 文件，并加载到参数服务器 -->
+  <param name="robot_description" command="$(find xacro)/xacro $(find robot_model)/urdf/robot.xacro" />
+
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" output="screen">
+    <param name="rate" value="50" />
+  </node>
+  
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+  
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find race_gazebo)/worlds/race.world"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+  </include>
+  
+  <!-- 在 Gazebo 中生成 challenge_robot 机器人模型 -->
+  <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model"
+        args="-urdf -model challenge_robot -param robot_description -x 0 -y 0 -z 0.1"
+        output="screen"/>
+
+
+  <group if="$(arg rviz)">
+   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find robot_model)/config/show_mycar.rviz" output="screen"/>
+  </group>
+
+</launch>
+
